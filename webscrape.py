@@ -3,8 +3,8 @@ import requests as req
 import pandas as pd
 
 yahooFin = 'https://finance.yahoo.com/quote/'
-txtfil = open('/Users/Magnus/Documents/webscrape/symbol.txt', 'r') #på denne filen ligger alle ticker-navnene til selskapene på
-symbol = [] #En tom liste.                                        S&P500 (Disse ble hentet med en mindre sofistikert webscraper)
+txtfil = open('symbol.txt', 'r')     #på denne filen ligger alle ticker-navnene til selskapene på 
+symbol = [] #En tom liste.           S&P500 (Disse ble hentet med en mindre sofistikert webscraper)                            
 bed = {} #en tom fortegnelse
 
 for i in txtfil: #legger alle tickernavnene inn listen kalt symbol
