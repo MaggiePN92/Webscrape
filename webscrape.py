@@ -2,33 +2,35 @@ from bs4 import BeautifulSoup as bs
 import requests as req
 import pandas as pd
 
-yahooFin = 'https://finance.yahoo.com/quote/'
-txtfil = open('symbol.txt', 'r')     #på denne filen ligger alle ticker-navnene til selskapene på 
-symbol = [] #En tom liste.           S&P500 (Disse ble hentet med en mindre sofistikert webscraper)                            
-bed = {} #en tom fortegnelse
+yahooFinance = 'https://finance.yahoo.com/quote/'
+ticker = [] #I denne listen må tickernavn ligge, f.eks. AAPL, MSFT, osv..
 
-for i in txtfil: #legger alle tickernavnene inn listen kalt symbol
-    symbol.append(i.strip()) #vi fjerner linjehopp med .strip()
+def yahooScrape(bedriftListe):
+    
+    bedInfo = {} #En tom fortegnelse. Her skal bedriftsinformasjon ligge.
+    
+    for bedrift in bedriftListe: #itererer over listen.
+        print('Henter for:',bedrift)
+        
+        bedInfo[bedrift] = {} #hver bedrift blir lagt til fortegnelsen med en tom fortegnelse (nøstet fortegnelse).
+        
+        side = yahooFinance+bedrift #her henter vi nettsiden fra Yahoo Finance.
+        bedriftSide = req.get(side)
+        soup = bs(bedriftSide.content, 'html.parser')
+    
+        for element in soup.find_all('td'): #itererer over HTML-koden til ønskede bedrifter.
+    
+            kolonneNavn = element.get('data-test') #Dette blir kolonnenavn i excelfilen vår.
+            strElem = str(element) #Finner verdien til riktig kolonne for riktig bedrift.
+            start = strElem.rfind('">')+2
+            slutt = strElem.find('</')
+            verdi = strElem[start:slutt]
+    
+            if kolonneNavn == None:continue #hvis kolonnenavn er None -> neste.
+            else: bedInfo[bedrift][kolonneNavn]=verdi #legger til verdi i nøstet fortegnelse.
 
-for symb in symbol: #itererer over listen med alle tickernavnene
-    print('Henter for:', symb)
-    bed[symb] = {} #lager en tom fortegnelse for hvert selskap
-    side = yahooFin + symb #lager addressen for nettside for gitt selskap
-    tick_side = req.get(side) #henter html-koden til nettsiden
-    soup = bs(tick_side.content, 'html.parser') #renser html-koden med soup
 
-    for elem in soup.find_all('td'): #itererer over alle linjer i koden som har 'td' i seg (dette vil være hvor data som f.eks.
-                                     #market cap står skrevet)
-        key = elem.get('data-test')  # navn på variabel
-        strElem = str(elem) #gjør iterasjonene om til string slik at den kan manipulerers enklere
-        start = strElem.rfind('">') + 2 #her starter verdien i html-koden
-        slutt = strElem.find('</') #her slutter verdien
-        verdi = strElem[start:slutt]
+    dataRamme = pd.DataFrame.from_dict(bedInfo, orient='index') #lager dataframe av den nestede fortegnelsen.
+    dataRamme.to_excel("aksjeInfo.xlsx") #skriver dataframe til excelfil.
 
-        if elem.get('data-test') == None or verdi == None: #legger ikke til dersom ingen verdier
-            continue
-        else:
-            bed[symb][key] = verdi #legger til og skaper en nøstet fortegnelse
-
-dataRamme = pd.DataFrame.from_dict(bed, orient='index') #lager en dataramme av variablene i bed fortegnelsen
-dataRamme.to_excel("sp500.xlsx") #skriver datarammen ut til en xlsxfil (excel) med navn SP500
+yahooScrape(ticker)
